@@ -9,7 +9,7 @@ departuretimeinMinutes = [flightplan.HoraDespegue.Minute];
 departuretimeinSeconds = [flightplan.HoraDespegue.Second];
 
 [~, idx_flightplan, idx_asterix] = intersect([flightplan.id, departuretimeinHours, departuretimeinMinutes, departuretimeinSeconds], ...
-                                             [asterix.I240_TId, asterix.Hours, asterix.Minutes, asterix.Seconds], 'rows');
+                                             [asterix.TI, asterix.Hours, asterix.Minutes, asterix.Seconds], 'rows');
 
 % Calculating distance for matching messages
 x1 = asterix.X(idx_asterix);
