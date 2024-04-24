@@ -1,0 +1,16 @@
+function distances= DEstereograficas(distances)
+
+% define semimajor and semiminor axis
+
+a = 6378137.0;
+b = 6356752.3142;
+
+% define eccentricity of the ellipsoid squared
+
+e2 = 0.00669437999013;
+
+% define center of projection
+
+height = 0;
+latitude = (56.560)
+
