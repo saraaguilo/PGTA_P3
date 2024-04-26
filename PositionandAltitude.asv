@@ -1,0 +1,11 @@
+% Calcular de manera estadística la posición (lat,lon), (x,y)
+% y altitud en el momento del inicio del viraje en las aeronaves
+% despegando por la RWY 24L
+
+function beforeTable, afterTable = PositionandAltitude(beforeTable, afterTable);
+
+% 'x' column exists?
+        if ~ismember('x', writeTable.Properties.VariableNames)
+            writeTable.x = zeros(height(writeTable), 1);
+        end
+
