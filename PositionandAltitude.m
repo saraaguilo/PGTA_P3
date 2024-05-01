@@ -1,6 +1,6 @@
 % Calcular de manera estadística la posición (lat,lon), (x,y)
 % y altitud en el momento del inicio del viraje en las aeronaves
-% despegando por la RWY 24L
+% despegando por la RWY (24L)
 
 function PositionandAltitude(beforeTable, afterTable)
 % 'x' and 'y' columns exist?

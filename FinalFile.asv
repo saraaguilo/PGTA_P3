@@ -1,0 +1,32 @@
+clear all 
+close all
+
+%% Primero debemos cargar los archivos de excel
+% El primero que se carga es el fichero de Asterix, después el de
+% flightplans
+
+choice1 = questdlg('Select the ASTERIX file', 'Dialog', 'OK', 'Cancel', 'OK');
+
+switch choice1
+    case 'OK'
+        disp('You chose OK');
+        [archivo, ruta] = uigetfile('*.csv*', 'Select an ASTERIX  file');
+        if isequal(archivo, 0)
+            disp('Canceled operation');
+            return; 
+        end
+        % Check if the file extension is ".csv"
+        if endsWith(archivo, '.csv', 'IgnoreCase', true)
+            ruta_completa = fullfile(ruta, archivo);
+            % Continue with further processing using ruta_completa
+        else
+            disp('El archivo seleccionado no es un archivo CSV. Por favor, selecciona un archivo CSV.');
+        end
+
+    case 'Cancel'
+        disp('Canceled operation');
+        % Take appropriate action if the user cancels the operation
+end
+
+
+
