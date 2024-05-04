@@ -1,31 +1,169 @@
 clear all 
 close all
 
-%% Primero debemos cargar los archivos de excel
-% El primero que se carga es el fichero de Asterix, después el de
-% flightplans
+%% Carga de archivos Excel
+% Primero cargamos el archivo de Asterix y luego el de Flightplans
 
-choice1 = questdlg('Select the ASTERIX file', 'Dialog', 'OK', 'Cancel', 'OK');
+% Solicitar al usuario que seleccione un archivo de Asterix
+respuesta_msg1 = questdlg('Por favor, selecciona un archivo de Asterix.', 'Atención', 'OK', 'Cancelar', 'OK');
 
-switch choice1
+switch respuesta_msg1
     case 'OK'
-        disp('You chose OK');
-        [archivo, ruta] = uigetfile('*.csv*', 'Select an ASTERIX  file');
+        disp('Seleccionaste OK');
+        % Abrir una interfaz gráfica para la selección de archivos
+        [archivo, ruta] = uigetfile('*.csv*', 'Selecciona un archivo de Asterix');
+
+        % Verificar si el usuario selecciona un archivo o cancela la operación
         if isequal(archivo, 0)
-            disp('Canceled operation');
-            return; 
+            disp('Operación cancelada por el usuario.');
+            return;  % Salir del script si el usuario cancela la operación
         end
-        % Check if the file extension is ".csv"
+
+        % Verificar si la extensión del archivo es ".csv"
         if endsWith(archivo, '.csv', 'IgnoreCase', true)
             ruta_completa = fullfile(ruta, archivo);
-            % Continue with further processing using ruta_completa
         else
             disp('El archivo seleccionado no es un archivo CSV. Por favor, selecciona un archivo CSV.');
+            return;  % Salir del script si el usuario selecciona un archivo no válido
         end
 
-    case 'Cancel'
-        disp('Canceled operation');
-        % Take appropriate action if the user cancels the operation
+    case 'Cancelar'
+        disp('Operación cancelada por el usuario.');
+        return;  % Salir del script si el usuario cancela la operación
+end
+
+% Leer los datos del archivo CSV y crear una tabla
+if exist('ruta_completa', 'var')
+    tablaASTERIX = readtable(ruta_completa);
+else
+    disp('No se seleccionó un archivo CSV.');
+    return;  % Salir del script si no se selecciona un archivo CSV
+end
+
+% Solicitar al usuario que seleccione un archivo de plan de vuelo
+respuesta_msg2 = questdlg('Por favor, selecciona un archivo de plan de vuelo.', 'Atención', 'OK', 'Cancelar', 'OK');
+
+switch respuesta_msg2
+    case 'OK'
+        disp('Seleccionaste OK');
+        % Abrir una interfaz gráfica para la selección de archivos
+        [archivo, ruta] = uigetfile('*.xlsx*', 'Selecciona un archivo de plan de vuelo');
+
+        % Verificar si el usuario selecciona un archivo o cancela la operación
+        if isequal(archivo, 0)
+            disp('Operación cancelada por el usuario.');
+            return;  % Salir del script si el usuario cancela la operación
+        end
+
+        % Verificar si la extensión del archivo es ".xlsx"
+        if endsWith(archivo, '.xlsx', 'IgnoreCase', true)
+            ruta_completa2 = fullfile(ruta, archivo);
+        else
+            disp('El archivo seleccionado no es un archivo xlsx. Por favor, selecciona un archivo xlsx.');
+            return;  % Salir del script si el usuario selecciona un archivo no válido
+        end
+
+    case 'Cancelar'
+        disp('Operación cancelada por el usuario.');
+        return;  % Salir del script si el usuario cancela la operación
+end
+
+% Leer los datos del archivo Excel y crear una tabla
+if exist('ruta_completa2', 'var')
+    tablaPLANVUELO = readtable(ruta_completa2);
+else
+    disp('No se seleccionó un archivo xlsx.');
+    return;  % Salir del script si no se selecciona un archivo Excel
+end
+
+%% Filtrado de archivos
+
+LEBL_id = tablaPLANVUELO.Indicativo; 
+id_Asterix = tablaASTERIX.Var11;
+
+% Filtrar los callsign que tienen plan de vuelo dep en LEBL
+included = ismember(id_Asterix, LEBL_id);
+tablaFiltrada = tablaASTERIX(included,:);
+
+posiciones_x = [];
+posiciones_y = [];
+posiciones_z = [];
+
+
+for j = 1:height(tablaFiltrada)
+    LAT = tablaFiltrada.Var3(j); 
+    LON = tablaFiltrada.Var4(j); 
+    H = str2double(tablaFiltrada.Var5{j}) * 0.3048; %para pasar de pies a metros
+    distances = struct('Latitude', LAT, 'Longitude', LON, 'Height', H);
+    distances = DEstereograficas(distances);
+    posiciones_x = [posiciones_x; distances.X];
+    posiciones_y = [posiciones_y; distances.Y];
+    posiciones_z = [posiciones_z; distances.Z];
+end
+
+tablaCOORDENADAS = table(posiciones_x, posiciones_y, posiciones_z);
+tablaFiltrada = [tablaFiltrada tablaCOORDENADAS];
+
+%% Empezamos a analizar la tabla de departures de LEBL
+
+ids = tablaPLANVUELO.("id");
+Indicativos = string(tablaPLANVUELO.("Indicativo"));
+HoraDespegues = string(tablaPLANVUELO.("HoraDespegue"));
+RutaSACTAs = string(tablaPLANVUELO.("RutaSACTA"));
+TipoAeronaves = string(tablaPLANVUELO.("TipoAeronave"));
+Estelas = string(tablaPLANVUELO.("Estela"));
+ProcDesps = string(tablaPLANVUELO.("ProcDesp"));
+PistaDesps = string(tablaPLANVUELO.("PistaDesp"));
+
+%a continuación, diferenciaremos entre los vuelos que salen de la pista 06R
+%o de la pista 24L
+
+ids6 = [];
+Indicativos6 = []; 
+HoraDespegues6 = []; 
+RutaSACTAs6 = []; 
+TipoAeronaves6 = []; 
+Estelas6 = []; 
+ProcDesps6 = []; 
+
+ids24 = [];
+Indicativos24 = []; 
+HoraDespegues24 = []; 
+RutaSACTAs24 = []; 
+TipoAeronaves24 = []; 
+Estelas24 = []; 
+ProcDesps24 = []; 
+
+for j=1:length(PistaDesps)
+    if(PistaDesps(j)=="LEBL-06R")
+        ids6 = [ids6; ids(j)];
+        Indicativos6 = [Indicativos6; Indicativos(j)];
+        HoraDespegues6 = [HoraDespegues6; HoraDespegues(j)];
+        RutaSACTAs6 = [RutaSACTAs6; RutaSACTAs(j)];
+        TipoAeronaves6 = [TipoAeronaves6; TipoAeronaves(j)];
+        Estelas6 = [Estelas6;  Estelas(j)];
+        ProcDesps6 = [ProcDesps6; ProcDesps(j)];
+    end
+    if(PistaDesps(j)=="LEBL-24L")
+        ids24 = [ids24; ids(j)];
+        Indicativos24 = [Indicativos24; Indicativos(j)];
+        HoraDespegues24 = [HoraDespegues24; HoraDespegues(j)];
+        RutaSACTAs24 = [RutaSACTAs24; RutaSACTAs(j)];
+        TipoAeronaves24 = [TipoAeronaves24; TipoAeronaves(j)];
+        Estelas24 = [Estelas24;  Estelas(j)];
+        ProcDesps24 = [ProcDesps24; ProcDesps(j)];
+    end
+
+end
+table_runway6 = table(ids6,Indicativos6,HoraDespegues6,RutaSACTAs6,TipoAeronaves6,Estelas6,ProcDesps6);
+table_runway24 = table(ids24, Indicativos24, HoraDespegues24, RutaSACTAs24, TipoAeronaves24, Estelas24, ProcDesps24);
+[table_runway6, table_runway24] = separateRWY(cleanTable, table_runway6, table_runway24);
+
+function [table_runway24, table_runway6] = separateRWY(tablaFiltrada, table6, table24)
+    en06 = ismember(Tclean.I240_TId, table6.("Indic6"));
+    tablaRWY06R = Tclean(en06, :);
+    en24 = ismember(Tclean.I240_TId, table24.("Indic24"));
+    tablaRWY24L = Tclean(en24, :);
 end
 
 

@@ -4,7 +4,7 @@ function cumplimiento = LoA2(precedente, sucesiva, SID, dist)
 
     % Valor mínimo de las distancias entre dos aviones
     for i = 1:length(dist)
-        if dist(i) < min && dist(i) > 1
+        if dist(i) < min && dist(i) > 0.5
             min = dist(i);
         end
     end

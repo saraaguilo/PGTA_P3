@@ -8,7 +8,7 @@ function PositionandAltitude(beforeTable, afterTable)
          afterTable.x = zeros(height(afterTable), 1);
      end
      if ~ismember('y', afterTable.Properties.VariableNames)
-         afterTable.x = zeros(height(afterTable), 1);
+         afterTable.y = zeros(height(afterTable), 1);
      end
 % Miramos tabla dep_lebl
     if iscell(afterTable.HoraDespegue)
@@ -22,7 +22,7 @@ function PositionandAltitude(beforeTable, afterTable)
                    beforeTable.Hours == afterTable.HoraDespegue(i).Hour & ...
                    beforeTable.Minutes == afterTable.HoraDespegue(i).Minute & ...
                    beforeTable.Seconds == afterTable.HoraDespegue(i).Second, 1);
-
+% poner lo de coordenadas estereograficas en before table
         if ~isempty(matchingRowIndex)
            afterTable.x(i) = beforeTable.x(matchingRowIndex);
             afterTable.y(i) = beforeTable.y(matchingRowIndex);
