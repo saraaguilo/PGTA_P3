@@ -197,6 +197,122 @@ for i = 1:numFlights-1
     allDistances(i) = distance; 
 end
 
+
+%% Pérdidas de Separación en despegues consecutivos, según RADAR
+
+%Se sabe que la mínima separación, según radar, es de 3 NM
+
+% Calculamos el cumplimiento del criterio de distancia para cada vuelo
+cumplimientoRadar = sum(allDistances < 3 & allDistances > 0.5, 2);
+countRadar = sum(cumplimientoRadar > 0);
+
+for i = find(cumplimientoRadar > 0)'
+    prev = string(tabla_runway24L.Var11(i));
+    next = string(tabla_runway24L.Var11(i+1));
+    fprintf("\t %s - %s", prev, next);
+end
+fprintf("\n Total vuelos que incumplen la mínima distancia de separación por RADAR: %d\n", countRadar);
+
+%% Pérdidas de separación en despegues consecutivos, según ESTELA
+
+% Creamos un vector para identificar el tipo de estela de cada avión
+estelasAviones = string(tablaPLANVUELO.Estela(ismember(tablaPLANVUELO.Indicativo, tabla_runway24L.Var11)));
+
+% Comprobamos la separación por estela
+cumplimientoEstela = Estela(allDistances, estelasAviones(1:end-1), estelasAviones(2:end));
+countEstela24 = sum(cumplimientoEstela > 0);
+for i = find(cumplimientoEstela > 0)
+    previous = tabla_runway24L.Var11(i);
+    following = tabla_runway24L.Var11(i+1);
+    est1 = estelasAviones(i);
+    est2 = estelasAviones(i+1);
+end
+
+fprintf("\n Total vuelos que incumplen la mínima distancia de separación por ESTELA: %d\n", countEstela24);
+
+%% Pérdidas de separación en despegues consecutivos, según LoA
+
+aircraftclassification = readtable("Tabla_Clasificacion_aeronaves.xlsx");
+mismasid06 = readtable("Tabla_misma_SID_06R.xlsx");
+mismasid24 = readtable("Tabla_misma_SID_24L.xlsx");
+
+% Carga de datos
+aHP = aircraftclassification.HP;
+aNR = aircraftclassification.NR;
+aNRMas = aircraftclassification.("NR+");
+aNRMenos = aircraftclassification.("NR-");
+aLP = aircraftclassification.LP;
+
+[models, aircraftclassification] = clasificarAeronaves(tabla_runway24L.Var11, tablaPLANVUELO, aHP, aNR, aNRMas, aNRMenos, aLP);
+sids = ismember(mismasid24.Misma_SID_G1, tablaPLANVUELO.ProcDesp) | ismember(mismasid24.Misma_SID_G2, tablaPLANVUELO.ProcDesp) | ismember(mismasid24.Misma_SID_G3, tablaPLANVUELO.ProcDesp);
+
+% Verificación de LoA
+cumplimientoLoA = arrayfun(@(i) LoA2(aircraftclassification(i), aircraftclassification(i+1), sids(i), allDistances(i,:)), 1:(length(allDistances)-1));
+countSID24 = sum(cumplimientoLoA);
+
+for i = 1:length(cumplimientoLoA)
+    if cumplimientoLoA(i)
+        previous = string(listaaviones24L(i));
+        following = string(listaaviones24L(i+1));
+        est1 = string(aircraftclassification(i));
+        est2 = string(aircraftclassification(i+1));
+        fprintf(previous + " (" + est1 + ") - " + following + " (" + est2 + ")\t\t");
+        if mod(i, 5) == 0
+            fprintf("\n");
+        end
+    end
+end
+fprintf("\n Total vuelos que incumplen la mínima distancia de separación por LoA: %d\n", countSID24);
+
+%% Creación de tabla de resultados
+departures = arrayfun(@(i) listaaviones24L(i) + " - " + listaaviones24L(i+1), 2:length(listaaviones24L), 'UniformOutput', false);
+departures = [departures; ""];
+tablaResultados = table(departures, cumplimientoRadar.', cumplimientoEstela.', cumplimientoLoA.');
+
+%% Calculo, de manera estadística, de la posición (lat,lon), (x,y) y altitud en el momento del inicio del viraje en las aeronaves (24L)
+
+latitude = [];  
+longitude = [];
+altitude = [];
+
+for i = 1:length(tabla_runway24L.PistaDesps)
+    if tabla_runway24L.PistaDesps(i) == "LEBL-24L"
+        latitude(end+1) = tabla_runway24L.Var3(i);
+        longitude(end+1) = tabla_runway24L.Var4(i);
+        altitude(end+1) = tabla_runway24L.Var5(i);
+    end
+end
+
+% Calcular la media de las posiciones y altitudes
+if ~isempty(latitude)
+    mean_latitude = mean(latitude);
+    mean_longitude = mean(longitude);
+    mean_altitude = mean(altitude);
+    
+    fprintf('Estadísticas en el momento del inicio del viraje:\n');
+    fprintf('Latitud media: %.6f\n', mean_latitude);
+    fprintf('Longitud media: %.6f\n', mean_longitude);
+    fprintf('Altitud media: %.2f\n', mean_altitude);
+else
+    fprintf('No se encontraron datos para el momento del inicio del viraje en la RWY 24L.\n');
+end
+
+%% Determinar el radial del DVOR BCN a esos puntos para comprobar si cumple la Nota de la SID en el AIP
+
+% Coordenadas del DVOR BCN
+vorr_lat = dms2degrees([41, 18, 25.6]); 
+vorr_lon = dms2degrees([2, 6, 28.1]);    
+
+% Calculamos el rumbo magnético desde el DVOR BCN hacia cada punto de inicio del viraje
+for i = 1:length(latitude)
+    lat = latitude(i);
+    lon = longitude(i);
+    [azimuth, ~, ~] = geodetic2aer(lat, lon, 0, vorr_lat, vorr_lon, 0, wgs84Ellipsoid);
+    fprintf('Radial del DVOR BCN al punto %d: %.2f grados\n', i, azimuth);
+end
+
+%% Used functions
+
 function distance = distancescalculating(posiciones_x1, posiciones_y1, posiciones_z1, posiciones_x2, posiciones_y2, posiciones_z2)
     
     diff_x = posiciones_x2 - posiciones_x1;
@@ -206,3 +322,4 @@ function distance = distancescalculating(posiciones_x1, posiciones_y1, posicione
     % Calcula la distancia euclidiana
     distance = sqrt(diff_x.^2 + diff_y.^2 + diff_z.^2);
 end
+
