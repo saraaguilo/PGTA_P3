@@ -17,14 +17,14 @@ function distances = DEstereograficas(distances)
 
     % define "radio esfera conforme"
 
-    radius = 6368942.808; % in meters % 6370 mejor?
+    radius = 6368942.808; % in meters 
 
     %% Let's start the calculations
-
+    format long;
     % Convertir latitud y longitud de cadenas de texto a números
-    distances.Latitude = str2double(distances.Latitude);
-    distances.Longitude = str2double(distances.Longitude);
-
+    % distances.Latitude = distances.Latitude;
+    % distances.Longitude = distances.Longitude;
+    radius = 6368942.808;
     % Cartesian coordinates
     x = (radius + distances.Height) .* cosd(distances.Latitude) .* cosd(distances.Longitude);
     y = (radius + distances.Height) .* cosd(distances.Latitude) .* sind(distances.Longitude);
@@ -39,13 +39,15 @@ function distances = DEstereograficas(distances)
     % Radial distance from the projection center to the projected point
     % Letra H en página 41 del documento
     radial_distance = sqrt(distXYSquared + (z + height + radius_vertical) .* (z + height + radius_vertical)) - radius_vertical;
-
+      
     % Scale factor
-    k =  (2*radius_vertical)/(2 * radius_vertical + height + z + radial_distance);
-
+   for i=1:length(z)
+        k(i) =  (2*radius_vertical)/(2 * radius_vertical + height + z(i) + radial_distance(i)); 
+   end
+   k_columna = k(:);
     % Asignar coordenadas estereográficas a la estructura distances
-    distances.X = k .* x;
-    distances.Y = k .* y;
+    distances.X = k_columna .* x;
+    distances.Y = k_columna .* y;
     distances.Z = radial_distance;
 end
 

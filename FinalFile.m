@@ -90,16 +90,15 @@ posiciones_y = [];
 posiciones_z = [];
 
 
-for j = 1:height(tablaFiltrada)
-    LAT = tablaFiltrada.Var3(j); 
-    LON = tablaFiltrada.Var4(j); 
-    H = str2double(tablaFiltrada.Var5{j}) * 0.3048; %para pasar de pies a metros
+    LAT = str2double(regexprep(tablaFiltrada.Var3, ',', '.')); 
+    LON = str2double(regexprep(tablaFiltrada.Var4, ',', '.')); 
+    H = str2double(regexprep(tablaFiltrada.Var5, ',', '.')); 
     distances = struct('Latitude', LAT, 'Longitude', LON, 'Height', H);
     distances = DEstereograficas(distances);
     posiciones_x = [posiciones_x; distances.X];
     posiciones_y = [posiciones_y; distances.Y];
     posiciones_z = [posiciones_z; distances.Z];
-end
+
 
 tablaCOORDENADAS = table(posiciones_x, posiciones_y, posiciones_z);
 tablaFiltrada = [tablaFiltrada tablaCOORDENADAS];
@@ -194,7 +193,7 @@ for i = 1:numFlights-1
         tabla_runway24L.posiciones_x(nextFlightIndex), tabla_runway24L.posiciones_y(nextFlightIndex), tabla_runway24L.posiciones_z(nextFlightIndex));
     
     % Almacenar la distancia en la matriz allDistances
-    allDistances(i) = distance; 
+    allDistances(i) = distance/1852; 
 end
 
 

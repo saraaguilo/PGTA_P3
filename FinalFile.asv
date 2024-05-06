@@ -90,16 +90,15 @@ posiciones_y = [];
 posiciones_z = [];
 
 
-for j = 1:height(tablaFiltrada)
-    LAT = tablaFiltrada.Var3(j); 
-    LON = tablaFiltrada.Var4(j); 
-    H = str2double(tablaFiltrada.Var5{j}) * 0.3048; %para pasar de pies a metros
+    LAT = str2double(regexprep(tablaFiltrada.Var3, ',', '.')); 
+    LON = str2double(regexprep(tablaFiltrada.Var4, ',', '.')); 
+    H = str2double(regexprep(tablaFiltrada.Var5, ',', '.')); 
     distances = struct('Latitude', LAT, 'Longitude', LON, 'Height', H);
     distances = DEstereograficas(distances);
     posiciones_x = [posiciones_x; distances.X];
     posiciones_y = [posiciones_y; distances.Y];
     posiciones_z = [posiciones_z; distances.Z];
-end
+
 
 tablaCOORDENADAS = table(posiciones_x, posiciones_y, posiciones_z);
 tablaFiltrada = [tablaFiltrada tablaCOORDENADAS];
@@ -271,27 +270,45 @@ tablaResultados = table(departures, cumplimientoRadar.', cumplimientoEstela.', c
 
 %% Calculo, de manera estadística, de la posición (lat,lon), (x,y) y altitud en el momento del inicio del viraje en las aeronaves (24L)
 
-airplanelist = [];
-i = 0;
-latitude;
-longitude;
-altitude;
-if PistaDesps == "LEBL-24L"
-    latitude = tabla_runway24L.Var3(i);
-    longitude = tabla_runway24L.Var4(i);
-    altitude = tabla_runway24L.Var5(i);
-    tablaPositions = table( latitude, longitude, altitude);
-i = i+1;
+latitude = [];  
+longitude = [];
+altitude = [];
 
+for i = 1:length(tabla_runway24L.PistaDesps)
+    if tabla_runway24L.PistaDesps(i) == "LEBL-24L"
+        latitude(end+1) = tabla_runway24L.Var3(i);
+        longitude(end+1) = tabla_runway24L.Var4(i);
+        altitude(end+1) = tabla_runway24L.Var5(i);
+    end
+end
 
- end
- 
+% Calcular la media de las posiciones y altitudes
+if ~isempty(latitude)
+    mean_latitude = mean(latitude);
+    mean_longitude = mean(longitude);
+    mean_altitude = mean(altitude);
+    
+    fprintf('Estadísticas en el momento del inicio del viraje:\n');
+    fprintf('Latitud media: %.6f\n', mean_latitude);
+    fprintf('Longitud media: %.6f\n', mean_longitude);
+    fprintf('Altitud media: %.2f\n', mean_altitude);
+else
+    fprintf('No se encontraron datos para el momento del inicio del viraje en la RWY 24L.\n');
+end
 
+%% Determinar el radial del DVOR BCN a esos puntos para comprobar si cumple la Nota de la SID en el AIP
 
+% Coordenadas del DVOR BCN
+vorr_lat = dms2degrees([41, 18, 25.6]); 
+vorr_lon = dms2degrees([2, 6, 28.1]);    
 
-
-
-
+% Calculamos el rumbo magnético desde el DVOR BCN hacia cada punto de inicio del viraje
+for i = 1:length(latitude)
+    lat = latitude(i);
+    lon = longitude(i);
+    [azimuth, ~, ~] = geodetic2aer(lat, lon, 0, vorr_lat, vorr_lon, 0, wgs84Ellipsoid);
+    fprintf('Radial del DVOR BCN al punto %d: %.2f grados\n', i, azimuth);
+end
 
 %% Used functions
 
@@ -304,10 +321,4 @@ function distance = distancescalculating(posiciones_x1, posiciones_y1, posicione
     % Calcula la distancia euclidiana
     distance = sqrt(diff_x.^2 + diff_y.^2 + diff_z.^2);
 end
-
-
-
-
-
-
 
