@@ -221,8 +221,8 @@ countRadar = sum(cumplimientoRadar > 0);
 i = find(cumplimientoRadar > 0, 1);
 
 if ~isempty(i)
-    prev = string(tabla_runway24L.Var11(i));
-    next = string(tabla_runway24L.Var11(i+1));
+    prev = string(table_runway24.Indicativos24(i));
+    next = string(table_runway24.Indicativos24(i+1));
     fprintf("\t %s - %s\n", prev, next);
     countRadar = 1;
 else
@@ -255,19 +255,43 @@ fprintf("Total vuelos que incumplen la mínima distancia de separación por RADA
 %% Pérdidas de separación en despegues consecutivos, según ESTELA
 
 % Creamos un vector para identificar el tipo de estela de cada avión
-estelasAviones = string(tablaPLANVUELO.Estela(ismember(tablaPLANVUELO.Indicativo, tabla_runway24L.Var11)));
+estelasAviones = string(tablaPLANVUELO.Estela(ismember(tablaPLANVUELO.Indicativo, table_runway24.Indicativos24)));
 
 % Comprobamos la separación por estela
 cumplimientoEstela = Estela(allDistances, estelasAviones(1:end-1), estelasAviones(2:end));
 countEstela24 = sum(cumplimientoEstela > 0);
-for i = find(cumplimientoEstela > 0)
-    previous = tabla_runway24L.Var11(i);
-    following = tabla_runway24L.Var11(i+1);
-    est1 = estelasAviones(i);
-    est2 = estelasAviones(i+1);
+
+% Ajustamos el bucle para emparejar correctamente los indicativos y sus siguientes
+for i = 1:numel(cumplimientoEstela)
+    if cumplimientoEstela(i) > 0
+        previous = table_runway24.Indicativos24(i);
+        following = table_runway24.Indicativos24(i+1);
+        est1 = estelasAviones(i);
+        est2 = estelasAviones(i+1);
+        fprintf("\t %s - %s\n", previous, following);
+    end
 end
 
-fprintf("\n Total vuelos que incumplen la mínima distancia de separación por ESTELA: %d\n", countEstela24);
+fprintf("\n Total vuelos que incumplen la mínima distancia de separación por ESTELA para la pista 24L: %d\n", countEstela24);
+
+
+% Creamos un vector para identificar el tipo de estela de cada avión, para
+% la pista 06R
+estelasAviones2 = string(tablaPLANVUELO.Estela(ismember(tablaPLANVUELO.Indicativo, table_runway6.Indicativos6)));
+
+% Comprobamos la separación por estela
+cumplimientoEstela2 = Estela(allDistances06R, estelasAviones2(1:end-1), estelasAviones2(2:end));
+countEstela06 = sum(cumplimientoEstela2 > 0);
+for i = find(cumplimientoEstela2 > 0)
+    previous2 = table_runway6.Indicativos6(i);
+    following2 = table_runway6.Indicativos6(i+1);
+    est3 = estelasAviones2(i);
+    est4 = estelasAviones2(i+1);
+    % fprintf("\t %s - %s\n", previous2, following2);
+end
+
+fprintf("\n Total vuelos que incumplen la mínima distancia de separación por ESTELA para la pista 06R: %d\n", countEstela06);
+
 
 %% Pérdidas de separación en despegues consecutivos, según LoA
 
