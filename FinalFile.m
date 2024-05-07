@@ -181,19 +181,31 @@ tabla_runway24L.Var11 = string(tabla_runway24L.Var11);
 % uniqueFlightIds = string(uniqueFlightIds);
 % Obtener el número total de vuelos
 numFlights = height(tabla_runway24L);
+numFlights2 = height(tabla_runway06R);
 
 % Inicializar la matriz para almacenar todas las distancias
 allDistances = zeros(numFlights-1, 1);
-
+allDistances06R = zeros(numFlights2-1, 1);
 for i = 1:numFlights-1
     currentFlightIndex = i;
     nextFlightIndex = i + 1;
  
-    distance = distancescalculating(tabla_runway24L.posiciones_x(currentFlightIndex), tabla_runway24L.posiciones_y(currentFlightIndex), tabla_runway24L.posiciones_z(currentFlightIndex), ...
+    distance24L = distancescalculating(tabla_runway24L.posiciones_x(currentFlightIndex), tabla_runway24L.posiciones_y(currentFlightIndex), tabla_runway24L.posiciones_z(currentFlightIndex), ...
         tabla_runway24L.posiciones_x(nextFlightIndex), tabla_runway24L.posiciones_y(nextFlightIndex), tabla_runway24L.posiciones_z(nextFlightIndex));
     
-    % Almacenar la distancia en la matriz allDistances
-    allDistances(i) = distance/1852; 
+    % Almacenar la distancia en la matriz allDistances en NM
+    allDistances(i) = distance24L/1852; 
+end
+
+for i = 1:numFlights2-1
+    currentFlightIndex = i;
+    nextFlightIndex = i + 1;
+ 
+    distance06 = distancescalculating(tabla_runway06R.posiciones_x(currentFlightIndex), tabla_runway06R.posiciones_y(currentFlightIndex), tabla_runway06R.posiciones_z(currentFlightIndex), ...
+        tabla_runway06R.posiciones_x(nextFlightIndex), tabla_runway06R.posiciones_y(nextFlightIndex), tabla_runway06R.posiciones_z(nextFlightIndex));
+    
+    % Almacenar la distancia en la matriz allDistances en NM
+    allDistances06R(i) = distance06/1852; 
 end
 
 
@@ -201,16 +213,44 @@ end
 
 %Se sabe que la mínima separación, según radar, es de 3 NM
 
-% Calculamos el cumplimiento del criterio de distancia para cada vuelo
+% Calculamos el cumplimiento del criterio de distancia para cada vuelo, de
+% la pista 24L
 cumplimientoRadar = sum(allDistances < 3 & allDistances > 0.5, 2);
 countRadar = sum(cumplimientoRadar > 0);
 
-for i = find(cumplimientoRadar > 0)'
+i = find(cumplimientoRadar > 0, 1);
+
+if ~isempty(i)
     prev = string(tabla_runway24L.Var11(i));
     next = string(tabla_runway24L.Var11(i+1));
-    fprintf("\t %s - %s", prev, next);
+    fprintf("\t %s - %s\n", prev, next);
+    countRadar = 1;
+else
+    fprintf("No hay vuelos que incumplan la mínima distancia de separación por RADAR de la pista 24L.\n");
 end
-fprintf("\n Total vuelos que incumplen la mínima distancia de separación por RADAR: %d\n", countRadar);
+
+fprintf("Total vuelos que incumplen la mínima distancia de separación por RADAR de la pista 24L: %d\n", countRadar);
+
+
+% Calculamos el cumplimiento del criterio de distancia para cada vuelo, de
+% la pista 06R
+
+cumplimientoRadar2 = sum(allDistances06R < 3 & allDistances06R > 0.5, 2);
+countRadar2 = sum(cumplimientoRadar2 > 0);
+
+i = find(cumplimientoRadar2 > 0, 1);
+
+if ~isempty(i)
+    prev = string(table_runway6.Indicativos6(i));
+    next = string(table_runway6.Indicativos6(i+1));
+    fprintf("\t %s - %s\n", prev, next);
+    countRadar2 = 1; 
+else
+    fprintf("No hay vuelos que incumplan la mínima distancia de separación por RADAR de la pista 06R.\n");
+end
+
+fprintf("Total vuelos que incumplen la mínima distancia de separación por RADAR de la pista 06R: %d\n", countRadar2);
+
 
 %% Pérdidas de separación en despegues consecutivos, según ESTELA
 
