@@ -213,6 +213,18 @@ end
 
 %Se sabe que la mínima separación, según radar, es de 3 NM
 
+%Creamos la tabla filtrada de 24L para TWR, primera detección
+
+tablaTWR24L = tabla_runway24L
+
+%Creamos la tabla filtrada para 06R para TWR, primera detección
+
+%Creamos la tabla filtrada para 06R para TMA
+
+%Creamos la tabla filtrada para 24L para TMA
+
+
+
 % Calculamos el cumplimiento del criterio de distancia para cada vuelo, de
 % la pista 24L
 cumplimientoRadar = sum(allDistances < 3 & allDistances > 0.5, 2);
@@ -221,8 +233,8 @@ countRadar = sum(cumplimientoRadar > 0);
 i = find(cumplimientoRadar > 0, 1);
 
 if ~isempty(i)
-    prev = string(tabla_runway24L.Var11(i));
-    next = string(tabla_runway24L.Var11(i+1));
+    prev = string(table_runway24.Indicativos24(i));
+    next = string(table_runway24.Indicativos24(i+1));
     fprintf("\t %s - %s\n", prev, next);
     countRadar = 1;
 else
@@ -260,12 +272,16 @@ estelasAviones = string(tablaPLANVUELO.Estela(ismember(tablaPLANVUELO.Indicativo
 % Comprobamos la separación por estela
 cumplimientoEstela = Estela(allDistances, estelasAviones(1:end-1), estelasAviones(2:end));
 countEstela24 = sum(cumplimientoEstela > 0);
-for i = find(cumplimientoEstela > 0)
-    previous = table_runway24.Indicativos24(i);
-    following = table_runway24.Indicativos24(i+1);
-    est1 = estelasAviones(i);
-    est2 = estelasAviones(i+1);
-    fprintf("\t %s - %s\n", previous, following);
+
+% Ajustamos el bucle para emparejar correctamente los indicativos y sus siguientes
+for i = 1:numel(cumplimientoEstela)
+    if cumplimientoEstela(i) > 0
+        previous = table_runway24.Indicativos24(i);
+        following = table_runway24.Indicativos24(i+1);
+        est1 = estelasAviones(i);
+        est2 = estelasAviones(i+1);
+        fprintf("\t %s - %s\n", previous, following);
+    end
 end
 
 fprintf("\n Total vuelos que incumplen la mínima distancia de separación por ESTELA para la pista 24L: %d\n", countEstela24);

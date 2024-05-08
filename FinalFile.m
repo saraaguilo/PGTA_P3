@@ -213,6 +213,56 @@ end
 
 %Se sabe que la mínima separación, según radar, es de 3 NM
 
+%Creamos la tabla filtrada de 24L para TWR, primera detección
+tabla_TWR06R = table();
+indicativos_vistos24 = {};
+
+for i = 1:height(tabla_runway24L)
+    indicativo = tabla_runway24L.Var11(i);
+    
+    if ~ismember(indicativo, indicativos_vistos24)
+        indicativos_vistos24 = [indicativos_vistos24, indicativo];
+        tabla_TWR06R = [tabla_TWR06R; tabla_runway24L(i,:)];
+    end
+end
+
+%Creamos la tabla filtrada para 06R para TWR, primera detección
+
+tabla_TWR06R = table();
+indicativos_vistos06 = {};
+
+for i = 1:height(tabla_runway06R)
+    indicativo = tabla_runway06R.Var11(i);
+    
+    if ~ismember(indicativo, indicativos_vistos06)
+        indicativos_vistos06 = [indicativos_vistos06, indicativo];
+        tabla_TWR06R = [tabla_TWR06R; tabla_runway06R(i,:)];
+    end
+end
+
+%Creamos la tabla filtrada para 06R para TMA
+
+tabla_TMA24 = table();
+
+for i = 1:length(indicativos_vistos24)
+    indicativo = indicativos_vistos24{i};
+    filas_indicativo = tabla_runway24L(tabla_runway24L.Var11 == indicativo, :);
+    filas_indicativo(1,:) = [];
+    tabla_TMA24 = [tabla_TMA24; filas_indicativo];
+end
+
+%Creamos la tabla filtrada para 24L para TMA
+
+tabla_TMA06 = table();
+
+for i = 1:length(indicativos_vistos06)
+    indicativo = indicativos_vistos06{i};
+    filas_indicativo2 = tabla_runway06R(tabla_runway06R.Var11 == indicativo, :);
+    filas_indicativo2(1,:) = [];
+    tabla_TMA06 = [tabla_TMA06; filas_indicativo2];
+end
+
+
 % Calculamos el cumplimiento del criterio de distancia para cada vuelo, de
 % la pista 24L
 cumplimientoRadar = sum(allDistances < 3 & allDistances > 0.5, 2);
