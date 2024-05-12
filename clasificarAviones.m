@@ -3,8 +3,8 @@ function [taulamodel,taulatipus] = clasificarAviones(listaOrdenDep24,tablaPLANVU
 
 taulamodel = []; %columna1: model. cloumna2: tipus
 for i=1:size(listaOrdenDep24,1)
-pos=find(tablaPLANVUELO.Indicativos6==listaOrdenDep24(i));
-taulamodel=[taulamodel,(tablaPLANVUELO.TipoAeronaves6(pos(1)))];
+pos=find(tablaPLANVUELO.Indicativo==listaOrdenDep24(i));
+taulamodel=[taulamodel,(tablaPLANVUELO.TipoAeronave(pos(1)))];
 end
 
 taulatipus=[];

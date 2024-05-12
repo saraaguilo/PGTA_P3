@@ -1,5 +1,5 @@
 clear all 
-close ally
+close all
 
 %% Carga de archivos Excel
 % Primero cargamos el archivo de Asterix y luego el de Flightplans
@@ -90,6 +90,7 @@ id_Asterix = tablaASTERIX.Var11;
 % Filtrar los callsign que tienen plan de vuelo dep en LEBL
 included = ismember(id_Asterix, LEBL_id);
 tablaFiltrada = tablaASTERIX(included,:);
+tablaFiltrada.Var11 = string(tablaFiltrada.Var11);
 
 posiciones_x = [];
 posiciones_y = [];
@@ -165,8 +166,8 @@ table_runway24 = table(ids24, Indicativos24, HoraDespegues24, RutaSACTAs24, Tipo
 indices_06R = PistaDesps == "LEBL-06R";
 indices_24L = PistaDesps == "LEBL-24L";
 
-tabla_runway06R = tablaFiltrada(indices_06R, :);
-tabla_runway24L = tablaFiltrada(indices_24L, :);
+tabla_runway06R = tablaPLANVUELO(indices_06R, :);
+tabla_runway24L = tablaPLANVUELO(indices_24L, :);
 
 %En el paso anterior, hemos conseguidos filtrar la tabla principal entre
 %los vuelos que salen de la pista 06R o si salen de la pista 24L
@@ -179,12 +180,12 @@ aeronaveposterior = [];
 listaaviones24L = []; 
 listaaviones06R = []; 
 
-listaaviones24L = table2array(tabla_runway24L(:, "Var11"));
-listaaviones06R = table2array(tabla_runway06R(:, "Var11"));
+listaaviones24L = table2array(tabla_runway24L(:, "Indicativo"));
+listaaviones06R = table2array(tabla_runway06R(:, "Indicativo"));
 
-uniqueFlightIds = unique(tabla_runway24L.Var11);
-tabla_runway24L.Var11 = string(tabla_runway24L.Var11);
-tabla_runway06R.Var11 = string(tabla_runway06R.Var11);
+uniqueFlightIds = unique(tabla_runway24L.Indicativo);
+tabla_runway24L.Var11 = string(tabla_runway24L.Indicativo);
+tabla_runway06R.Var11 = string(tabla_runway06R.Indicativo);
 % uniqueFlightIds = string(uniqueFlightIds);
 % Obtener el número total de vuelos
 numFlights = height(tabla_runway24L);
@@ -199,55 +200,74 @@ numFlights2 = height(tabla_runway06R);
 %Se sabe que la mínima separación, según radar, es de 3 NM
 
 %Creamos la tabla filtrada de 24L para TWR, primera detección
+try
 tabla_TWR24L = table();
-indicativos_vistos24 = {};
+
 
 for i = 1:height(tabla_runway24L)
     indicativo = tabla_runway24L.Var11(i);
     
-    if ~ismember(indicativo, indicativos_vistos24)
-        indicativos_vistos24 = [indicativos_vistos24, indicativo];
-        tabla_TWR24L = [tabla_TWR24L; tabla_runway24L(i,:)];
+    if ismember(indicativo, tablaFiltrada.Var11)
+        pos=find(tablaFiltrada.Var11 == indicativo);
+        tabla_TWR24L = [tabla_TWR24L; tablaFiltrada(pos(1),:)];
+        
     end
 end
-
+tabla_TWR24L=sortrows(tabla_TWR24L,1);
+catch
+    disp("No hay ningún vuelo por la RWY 24L TWR");
+end
 %Creamos la tabla filtrada para 06R para TWR, primera detección
-
+try
 tabla_TWR06R = table();
-indicativos_vistos06 = {};
+
 
 for i = 1:height(tabla_runway06R)
     indicativo = tabla_runway06R.Var11(i);
-    
-    if ~ismember(indicativo, indicativos_vistos06)
-        indicativos_vistos06 = [indicativos_vistos06, indicativo];
-        tabla_TWR06R = [tabla_TWR06R; tabla_runway06R(i,:)];
+
+    if ismember(indicativo, tablaFiltrada.Var11)
+        pos=find(tablaFiltrada.Var11 == indicativo);
+        tabla_TWR06R = [tabla_TWR06R; tablaFiltrada(pos(1),:)];
+
     end
+end
+tabla_TWR06R=sortrows(tabla_TWR06R,1);
+catch
+    disp("No hay ningún vuelo por la RWY 06R TWR");
 end
 
 %Creamos la tabla filtrada para 06R para TMA
-
+try 
 tabla_TMA24 = table();
 
-for i = 1:length(indicativos_vistos24)
-    indicativo = indicativos_vistos24(i);
-    filas_indicativo = tabla_runway24L(tabla_runway24L.Var11 == indicativo, :);
-    filas_indicativo(1,:) = [];
-    tabla_TMA24 = [tabla_TMA24; filas_indicativo];
+for i = 1:height(tabla_runway24L)
+    indicativo = tabla_runway24L.Var11(i);
+    
+    if ismember(indicativo, tablaFiltrada.Var11)
+        pos=find(tablaFiltrada.Var11 == indicativo);
+        tabla_TMA24 = [tabla_TMA24; tablaFiltrada(pos(2:end),:)];
+        
+    end
 end
 tabla_TMA24=sortrows(tabla_TMA24,1);
-
+catch
+    disp("No hay ningún vuelo por la RWY 24L TMA");
+end
 %Creamos la tabla filtrada para 24L para TMA
-
+try 
 tabla_TMA06 = table();
 
-for i = 1:length(indicativos_vistos06)
-    indicativo2 = indicativos_vistos06{i};
-    filas_indicativo2 = tabla_runway06R(tabla_runway06R.Var11 == indicativo2, :);
-    filas_indicativo2(1,:) = [];
-    tabla_TMA06 = [tabla_TMA06; filas_indicativo2];
+for i = 1:height(tabla_runway06R)
+   indicativo = tabla_runway06R.Var11(i);
+    if ismember(indicativo, tablaFiltrada.Var11)
+        pos=find(tablaFiltrada.Var11 == indicativo);
+        tabla_TMA06 = [tabla_TMA06; tablaFiltrada(pos(2:end),:)];
+    end
 end
 tabla_TMA06=sortrows(tabla_TMA06,1);
+catch
+    disp("No hay nigún vuelo por la RWY 06R TMA");
+end
 
 %important
 numFlights24TWR = height(tabla_TWR24L);
@@ -528,28 +548,78 @@ tabla_TWR24Ldep.ProcDesps24=regexprep(tabla_TWR24Ldep.ProcDesps24, '\d', '-');
 %[models, aircraftclassification] = clasificarAeronaves(tabla_runway24L.Var11, tablaPLANVUELO, aHP, aNR, aNRMas, aNRMenos, aLP);
 %[taulamodelTWR24L,taulatipusTWR24L] = clasificarAviones(tabla_TWR24L.Var11,tablaPLANVUELO,aviones);
 try 
-    [taulamodelTWR06R,taulatipusTWR06R] = clasificarAviones(tabla_TWR06R.Var11,tabla_TWR06Rdep,aviones);
-    [taulamodelTWR24L,taulatipusTWR24L] = clasificarAviones(tabla_TWR24L.Var11,tabla_TWR24Ldep,aviones);
+    [taulamodelTWR06R,taulatipusTWR06R] = clasificarAviones(tabla_TWR06R.Var11,tablaPLANVUELO,aviones);
+    
 catch
-    disp('No hay ningún avión que coincida con las características');
+    disp('No hay ningún avión que coincida con las características de TWR 06R');
 end
 
+try 
+    [taulamodelTWR24L,taulatipusTWR24L] = clasificarAviones(tabla_TWR24L.Var11,tablaPLANVUELO,aviones);
+catch
+    disp('No hay ningún avión que coincida con las características de TWR 24L');
+end
+
+procdesp_esp=[];
+for i=1:height(tabla_TWR24L) 
+pos=find(tabla_runway24L.Var11==tabla_TWR24L.Var11(i));
+procdesp_esp=[procdesp_esp ; tabla_TWR24Ldep.ProcDesps24(pos)];
+
+end
+ % procdesp_esp2 = table(procdesp_esp);
+ % tabla_TWR24L = [tabla_TWR24L procdesp_esp2];
 
 
+% sid=zeros(height(tabla_TWR24L),1);
+% sid=table(sid);
+% tabla_TWR24L = [tabla_TWR24L sid];
+% sids1 = ismember(mismasid24.Misma_SID_G1, tabla_TWR24L.procdesp_esp);
+% sids2 = ismember(mismasid24.Misma_SID_G2,  tabla_TWR24L.procdesp_esp);
+% sids3= ismember(mismasid24.Misma_SID_G3,  tabla_TWR24L.procdesp_esp);
+for i=1:height(tabla_TWR24L)
+    if ismember(tabla_TWR24L.procdesp_esp(i),mismasid24.Misma_SID_G1)%any(tabla_TWR24L.procdesp_esp(i)==mismasid24.Misma_SID_G1)
+        tabla_TWR24L.sid(i)=1;
+    elseif ismember(tabla_TWR24L.procdesp_esp(i),mismasid24.Misma_SID_G2)
+        tabla_TWR24L.sid(i)=2;
+    elseif ismember(tabla_TWR24L.procdesp_esp(i),mismasid24.Misma_SID_G3)
+        tabla_TWR24L.sid(i)=3;
+    else
+        tabla_TWR24L.sid(i)=0;
+    end
+end
+%sids=[sids1,sids2,sids3];
 
-
-sids = ismember(mismasid24.Misma_SID_G1, tabla_TWR24Ldep.ProcDesps24) | ismember(mismasid24.Misma_SID_G2, tabla_TWR24Ldep.ProcDesps24) | ismember(mismasid24.Misma_SID_G3, tabla_TWR24Ldep.ProcDesps24);
 
 % Verificación de LoA
-cumplimientoLoA = arrayfun(@(i) LoA2(taulatipusTWR24L(1:end-1)), taulatipusTWR24L(2:end), sids(i), allDistances24TWR(i), 1:(length(allDistances24TWR)-1));
-countSID24 = sum(cumplimientoLoA);
+precedente1=taulatipusTWR24L(1:end-1);
+sucesiva1=taulatipusTWR24L(2:end);
 
-for i = 1:length(cumplimientoLoA)
-    if cumplimientoLoA(i)
-        previous = string(listaaviones24L(i));
-        following = string(listaaviones24L(i+1));
-        est1 = string(aircraftclassification(i));
-        est2 = string(aircraftclassification(i+1));
+cmp24=zeros(height(tabla_TWR24L)-1,1);
+
+
+for i=1:height(tabla_TWR24L)-1
+    if(tabla_TWR24L.sid(i)==tabla_TWR24L.sid(i+1))
+       cmp24(i)=1; 
+    end
+end
+i=1;
+%cumplimientoLoA(i) = arrayfun(@(i) LoA2(precedente1(i)), sucesiva1(i), cmp24(i), allDistances24TWR(i)) ,1:(length(allDistances24TWR));
+cumplimientoLoA24 = [];
+
+for i=1:height(tabla_TWR24L)-1
+cumplimientoLoA24(i) = LoA2(precedente1(i), sucesiva1(i), cmp24(i), allDistances24TWR);
+end
+
+try
+%cumplimientoLoA = arrayfun(@(i) LoA2(precedente1(i)), sucesiva1(i), cmp24(i), allDistances24TWR(i), 1:(length(allDistances24TWR)));
+countSID24 = sum(cumplimientoLoA24);
+
+for i = 1:length(cumplimientoLoA24)
+    if cumplimientoLoA24(i)
+        previous = string(tabla_TWR24L.Var11(i));
+        following = string(tabla_TWR24L.Var11(i+1));
+        est1 = string(taulatipusTWR24L(i));
+        est2 = string(taulatipusTWR24L(i+1));
         fprintf(previous + " (" + est1 + ") - " + following + " (" + est2 + ")\t\t");
         if mod(i, 5) == 0
             fprintf("\n");
@@ -557,6 +627,9 @@ for i = 1:length(cumplimientoLoA)
     end
 end
 fprintf("\n Total vuelos que incumplen la mínima distancia de separación por LoA: %d\n", countSID24);
+catch
+    disp('No hay ningún avión que coincida con las características de LOA');
+end
 
 %% Creación de tabla de resultados
 departures = arrayfun(@(i) listaaviones24L(i) + " - " + listaaviones24L(i+1), 2:length(listaaviones24L), 'UniformOutput', false);
