@@ -35,6 +35,10 @@ end
 % Leer los datos del archivo CSV y crear una tabla
 if exist('ruta_completa', 'var')
     tablaASTERIX = readtable(ruta_completa);
+    [num, txt, raw] = xlsread(ruta_completa);
+    txt = txt(2:end, :);
+    tablaASTERIX.Var1=txt(:,1);
+   
 else
     disp('No se seleccionó un archivo CSV.');
     return;  % Salir del script si no se selecciona un archivo CSV
@@ -178,35 +182,14 @@ listaaviones06R = table2array(tabla_runway06R(:, "Var11"));
 
 uniqueFlightIds = unique(tabla_runway24L.Var11);
 tabla_runway24L.Var11 = string(tabla_runway24L.Var11);
+tabla_runway06R.Var11 = string(tabla_runway06R.Var11);
 % uniqueFlightIds = string(uniqueFlightIds);
 % Obtener el número total de vuelos
 numFlights = height(tabla_runway24L);
 numFlights2 = height(tabla_runway06R);
 
 % Inicializar la matriz para almacenar todas las distancias
-allDistances = zeros(numFlights-1, 1);
-allDistances06R = zeros(numFlights2-1, 1);
-for i = 1:numFlights-1
-    currentFlightIndex = i;
-    nextFlightIndex = i + 1;
- 
-    distance24L = distancescalculating(tabla_runway24L.posiciones_x(currentFlightIndex), tabla_runway24L.posiciones_y(currentFlightIndex), tabla_runway24L.posiciones_z(currentFlightIndex), ...
-        tabla_runway24L.posiciones_x(nextFlightIndex), tabla_runway24L.posiciones_y(nextFlightIndex), tabla_runway24L.posiciones_z(nextFlightIndex));
-    
-    % Almacenar la distancia en la matriz allDistances en NM
-    allDistances(i) = distance24L/1852; 
-end
 
-for i = 1:numFlights2-1
-    currentFlightIndex = i;
-    nextFlightIndex = i + 1;
- 
-    distance06 = distancescalculating(tabla_runway06R.posiciones_x(currentFlightIndex), tabla_runway06R.posiciones_y(currentFlightIndex), tabla_runway06R.posiciones_z(currentFlightIndex), ...
-        tabla_runway06R.posiciones_x(nextFlightIndex), tabla_runway06R.posiciones_y(nextFlightIndex), tabla_runway06R.posiciones_z(nextFlightIndex));
-    
-    % Almacenar la distancia en la matriz allDistances en NM
-    allDistances06R(i) = distance06/1852; 
-end
 
 
 %% Pérdidas de Separación en despegues consecutivos, según RADAR
@@ -214,77 +197,213 @@ end
 %Se sabe que la mínima separación, según radar, es de 3 NM
 
 %Creamos la tabla filtrada de 24L para TWR, primera detección
+tabla_TWR24L = table();
+indicativos_vistos24 = {};
 
-tablaTWR24L = tabla_runway24L
+for i = 1:height(tabla_runway24L)
+    indicativo = tabla_runway24L.Var11(i);
+    
+    if ~ismember(indicativo, indicativos_vistos24)
+        indicativos_vistos24 = [indicativos_vistos24, indicativo];
+        tabla_TWR24L = [tabla_TWR24L; tabla_runway24L(i,:)];
+    end
+end
 
 %Creamos la tabla filtrada para 06R para TWR, primera detección
 
+tabla_TWR06R = table();
+indicativos_vistos06 = {};
+
+for i = 1:height(tabla_runway06R)
+    indicativo = tabla_runway06R.Var11(i);
+    
+    if ~ismember(indicativo, indicativos_vistos06)
+        indicativos_vistos06 = [indicativos_vistos06, indicativo];
+        tabla_TWR06R = [tabla_TWR06R; tabla_runway06R(i,:)];
+    end
+end
+
 %Creamos la tabla filtrada para 06R para TMA
+
+tabla_TMA24 = table();
+
+for i = 1:length(indicativos_vistos24)
+    indicativo = indicativos_vistos24(i);
+    filas_indicativo = tabla_runway24L(tabla_runway24L.Var11 == indicativo, :);
+    filas_indicativo(1,:) = [];
+    tabla_TMA24 = [tabla_TMA24; filas_indicativo];
+end
+tabla_TMA24=sortrows(tabla_TMA24,1);
 
 %Creamos la tabla filtrada para 24L para TMA
 
+tabla_TMA06 = table();
+
+for i = 1:length(indicativos_vistos06)
+    indicativo2 = indicativos_vistos06{i};
+    filas_indicativo2 = tabla_runway06R(tabla_runway06R.Var11 == indicativo2, :);
+    filas_indicativo2(1,:) = [];
+    tabla_TMA06 = [tabla_TMA06; filas_indicativo2];
+end
+tabla_TMA06=sortrows(tabla_TMA06,1);
+
+%important
+numFlights24TWR = height(tabla_TWR24L);
+numFlights06TWR = height(tabla_TWR06R);
+numFlights24TMA = height(tabla_TMA24);
+numFlights06TMA = height(tabla_TMA06);
+% Inicializar la matriz para almacenar todas las distancias
+allDistances24TWR = zeros(numFlights24TWR-1, 1);
+allDistances06TWR = zeros(numFlights06TWR-1, 1);
+allDistances24TMA = zeros(numFlights24TMA-1, 1);
+allDistances06TMA = zeros(numFlights06TMA-1, 1);
+
+for i = 1:numFlights24TWR-1
+    currentFlightIndex = i;
+    nextFlightIndex = i + 1;
+ 
+    distance24TWR = distancescalculating(tabla_TWR24L.posiciones_x(currentFlightIndex), tabla_TWR24L.posiciones_y(currentFlightIndex), tabla_TWR24L.posiciones_z(currentFlightIndex), ...
+        tabla_TWR24L.posiciones_x(nextFlightIndex), tabla_TWR24L.posiciones_y(nextFlightIndex), tabla_TWR24L.posiciones_z(nextFlightIndex));
+    
+    % Almacenar la distancia en la matriz allDistances en NM
+    allDistances24TWR(i) = distance24TWR/1852; 
+end
+
+for i = 1:numFlights06TWR-1
+    currentFlightIndex = i;
+    nextFlightIndex = i + 1;
+ 
+    distance06TWR = distancescalculating(tabla_TWR06R.posiciones_x(currentFlightIndex), tabla_TWR06R.posiciones_y(currentFlightIndex), tabla_TWR06R.posiciones_z(currentFlightIndex), ...
+        tabla_TWR06R.posiciones_x(nextFlightIndex), tabla_TWR06R.posiciones_y(nextFlightIndex), tabla_TWR06R.posiciones_z(nextFlightIndex));
+    
+    % Almacenar la distancia en la matriz allDistances en NM
+    allDistances06TWR(i) = distance06TWR/1852; 
+end
+
+for i = 1:numFlights24TMA-1
+    currentFlightIndex = i;
+    nextFlightIndex = i + 1;
+ 
+    distance24TMA = distancescalculating(tabla_TMA24.posiciones_x(currentFlightIndex), tabla_TMA24.posiciones_y(currentFlightIndex), tabla_TMA24.posiciones_z(currentFlightIndex), ...
+        tabla_TMA24.posiciones_x(nextFlightIndex), tabla_TMA24.posiciones_y(nextFlightIndex), tabla_TMA24.posiciones_z(nextFlightIndex));
+    
+    % Almacenar la distancia en la matriz allDistances en NM
+    allDistances24TMA(i) = distance24TMA/1852; 
+end
+
+for i = 1:numFlights06TMA-1
+    currentFlightIndex = i;
+    nextFlightIndex = i + 1;
+ 
+    distance06TMA = distancescalculating(tabla_TMA06.posiciones_x(currentFlightIndex), tabla_TMA06.posiciones_y(currentFlightIndex),tabla_TMA06.posiciones_z(currentFlightIndex), ...
+      tabla_TMA06.posiciones_x(nextFlightIndex), tabla_TMA06.posiciones_y(nextFlightIndex), tabla_TMA06.posiciones_z(nextFlightIndex));
+    
+    % Almacenar la distancia en la matriz allDistances en NM
+    allDistances06TMA(i) = distance06TMA/1852; 
+end
+
+%aqui sacaba
+
+% Calculamos el cumplimiento del criterio de distancia para cada vuelo, de
+% la pista 24LTWR
+cumplimientoRadar24TWR = sum(allDistances24TWR < 3 & allDistances24TWR > 0.5, 2);
+countRadar24TWR = sum(cumplimientoRadar24TWR > 0);
+
+%i = find(cumplimientoRadar24TWR > 0, 1);
+for i=1:height(tabla_TWR24L)-1
+if ~isempty(i)
+    prev = string(tabla_TWR24L.Var11(i));
+    next = string(tabla_TWR24L.Var11(i+1));
+    if(allDistances24TWR(i)<3 & allDistances24TWR(i) > 0.5)
+    fprintf("\t %s - %s\n", prev, next);
+    %countRadar = 1;
+    end
+else
+    fprintf("No hay vuelos que incumplan la mínima distancia de separación por RADAR de la pista 24L TWR.\n");
+end
+end
+fprintf("Total vuelos que incumplen la mínima distancia de separación por RADAR de la pista 24L TWR: %d\n", countRadar24TWR);
 
 
 % Calculamos el cumplimiento del criterio de distancia para cada vuelo, de
-% la pista 24L
-cumplimientoRadar = sum(allDistances < 3 & allDistances > 0.5, 2);
-countRadar = sum(cumplimientoRadar > 0);
+% la pista 06RTWR
+cumplimientoRadar06TWR = sum(allDistances06TWR < 3 & allDistances06TWR > 0.5, 2);
+countRadar06TWR = sum(cumplimientoRadar06TWR > 0);
 
-i = find(cumplimientoRadar > 0, 1);
-
+%i = find(cumplimientoRadar24TWR > 0, 1);
+for i=1:height(tabla_TWR06R)-1
 if ~isempty(i)
-    prev = string(table_runway24.Indicativos24(i));
-    next = string(table_runway24.Indicativos24(i+1));
+    prev = string(tabla_TWR06R.Var11(i));
+    next = string(tabla_TWR06R.Var11(i+1));
+    if(allDistances06TWR(i)<3 & allDistances06TWR(i) > 0.5)
     fprintf("\t %s - %s\n", prev, next);
-    countRadar = 1;
+    %countRadar = 1;
+    end
 else
-    fprintf("No hay vuelos que incumplan la mínima distancia de separación por RADAR de la pista 24L.\n");
+    fprintf("No hay vuelos que incumplan la mínima distancia de separación por RADAR de la pista 06R TWR.\n");
 end
+end
+fprintf("Total vuelos que incumplen la mínima distancia de separación por RADAR de la pista 06R TWR: %d\n", countRadar06TWR);
 
-fprintf("Total vuelos que incumplen la mínima distancia de separación por RADAR de la pista 24L: %d\n", countRadar);
 
+cumplimientoRadar24TMA = sum(allDistances24TMA < 3 & allDistances24TMA > 0.5, 2);
+countRadar24TMA = sum(cumplimientoRadar24TMA > 0);
 
-% Calculamos el cumplimiento del criterio de distancia para cada vuelo, de
-% la pista 06R
-
-cumplimientoRadar2 = sum(allDistances06R < 3 & allDistances06R > 0.5, 2);
-countRadar2 = sum(cumplimientoRadar2 > 0);
-
-i = find(cumplimientoRadar2 > 0, 1);
-
+%i = find(cumplimientoRadar24TWR > 0, 1);
+for i=1:height(tabla_TMA24)-1
 if ~isempty(i)
-    prev = string(table_runway6.Indicativos6(i));
-    next = string(table_runway6.Indicativos6(i+1));
+    prev = string(tabla_TMA24.Var11(i));
+    next = string(tabla_TMA24.Var11(i+1));
+    if(allDistances24TMA(i)<3 & allDistances24TMA(i) > 0.5)
     fprintf("\t %s - %s\n", prev, next);
-    countRadar2 = 1; 
+    %countRadar = 1;
+    end
 else
-    fprintf("No hay vuelos que incumplan la mínima distancia de separación por RADAR de la pista 06R.\n");
+    fprintf("No hay vuelos que incumplan la mínima distancia de separación por RADAR de la pista 24L TMA.\n");
 end
+end
+fprintf("Total vuelos que incumplen la mínima distancia de separación por RADAR de la pista 24L TMA: %d\n", countRadar24TMA);
 
-fprintf("Total vuelos que incumplen la mínima distancia de separación por RADAR de la pista 06R: %d\n", countRadar2);
 
+cumplimientoRadar06TMA = sum(allDistances06TMA < 3 & allDistances06TMA > 0.5, 2);
+countRadar06TMA = sum(cumplimientoRadar06TMA > 0);
+
+%i = find(cumplimientoRadar24TWR > 0, 1);
+for i=1:height(tabla_TMA06)-1
+if ~isempty(i)
+    prev = string(tabla_TMA06.Var11(i));
+    next = string(tabla_TMA06.Var11(i+1));
+    if(allDistances06TMA(i)<3 & allDistances06TMA(i) > 0.5)
+    fprintf("\t %s - %s\n", prev, next);
+    %countRadar = 1;
+    end
+else
+    fprintf("No hay vuelos que incumplan la mínima distancia de separación por RADAR de la pista 06R TWR.\n");
+end
+end
+fprintf("Total vuelos que incumplen la mínima distancia de separación por RADAR de la pista 06R TMA: %d\n", countRadar06TMA);
 
 %% Pérdidas de separación en despegues consecutivos, según ESTELA
 
 % Creamos un vector para identificar el tipo de estela de cada avión
-estelasAviones = string(tablaPLANVUELO.Estela(ismember(tablaPLANVUELO.Indicativo, table_runway24.Indicativos24)));
+estelasAviones24TWR = string(tablaPLANVUELO.Estela(ismember(tablaPLANVUELO.Indicativo, tabla_TWR24L.Var11)));
 
 % Comprobamos la separación por estela
-cumplimientoEstela = Estela(allDistances, estelasAviones(1:end-1), estelasAviones(2:end));
-countEstela24 = sum(cumplimientoEstela > 0);
+cumplimientoEstela24TWR = Estela(allDistances24TWR, estelasAviones24TWR(1:end-1), estelasAviones24TWR(2:end));
+countEstela24TWR = sum(cumplimientoEstela24TWR > 0);
 
 % Ajustamos el bucle para emparejar correctamente los indicativos y sus siguientes
-for i = 1:numel(cumplimientoEstela)
-    if cumplimientoEstela(i) > 0
-        previous = table_runway24.Indicativos24(i);
-        following = table_runway24.Indicativos24(i+1);
-        est1 = estelasAviones(i);
-        est2 = estelasAviones(i+1);
+for i = 1:numel(cumplimientoEstela24TWR)
+    if cumplimientoEstela24TWR(i) > 0
+        previous = tabla_TWR24L.Var11(i);
+        following = tabla_TWR24L.Var11(i+1);
+        est1 = estelasAviones24TWR(i);
+        est2 = estelasAviones24TWR(i+1);
         fprintf("\t %s - %s\n", previous, following);
     end
 end
 
-fprintf("\n Total vuelos que incumplen la mínima distancia de separación por ESTELA para la pista 24L: %d\n", countEstela24);
+fprintf("\n Total vuelos que incumplen la mínima distancia de separación por ESTELA para la pista 24L TWR: %d\n", countEstela24TWR);
 
 
 % Creamos un vector para identificar el tipo de estela de cada avión, para
@@ -386,6 +505,109 @@ for i = 1:length(latitude)
     fprintf('Radial del DVOR BCN al punto %d: %.2f grados\n', i, azimuth);
 end
 
+
+%% Velocidad IAS de los despegues a distintas altitudes: 850 ft, 1500 ft y 3500 ft
+
+% Aquí usaremos la tabla filtrada para la pista 24L
+% 1m = 3.28084ft
+
+array_velocidades850 = [];
+array_velocidades1500 = [];
+array_velocidades3500 = [];
+
+unique_planes = unique(tabla_runway24L.Var11);  
+
+
+for plane_id = unique_planes'
+    rows = tabla_runway24L.Var11 == plane_id;
+    alturas_cell = tabla_runway24L.Var5(rows); 
+
+
+alturas_str_cleaned = regexprep(alturas_cell, '[^\d.]', ''); 
+alturas_numeric = str2double(alturas_str_cleaned);
+alturas = alturas_numeric * 3.28084; 
+
+    IAS_values = tabla_runway24L.Var19(rows);
+    velocidad850 = NaN;
+    velocidad1500 = NaN;
+    velocidad3500 = NaN;
+    for j = 1:length(alturas)
+        if isnan(velocidad850) && alturas(j) >= 850
+            velocidad850 = IAS_values(j);
+        end
+        if isnan(velocidad1500) && alturas(j) >= 1500
+            velocidad1500 = IAS_values(j);
+        end
+        if isnan(velocidad3500) && alturas(j) >= 3500
+            velocidad3500 = IAS_values(j);
+        end
+        if ~isnan(velocidad850) && ~isnan(velocidad1500) && ~isnan(velocidad3500)
+            break;
+        end
+    end
+  
+    array_velocidades850(end+1) = velocidad850;
+    array_velocidades1500(end+1) = velocidad1500;
+    array_velocidades3500(end+1) = velocidad3500;
+end
+
+disp('Velocidades a 850 ft para 24L:');
+disp(array_velocidades850);
+disp('Velocidades a 1500 ft para 24L:');
+disp(array_velocidades1500);
+disp('Velocidades a 3500 ft para 24L:');
+disp(array_velocidades3500);
+
+% Aquí usaremos la tabla filtrada para la pista 24L
+% 1m = 3.28084ft
+
+array_velocidades850 = [];
+array_velocidades1500 = [];
+array_velocidades3500 = [];
+
+unique_planes = unique(tabla_runway24L.Var11);  
+
+
+for plane_id = unique_planes'
+    rows = tabla_runway24L.Var11 == plane_id;
+    alturas_cell = tabla_runway24L.Var5(rows); 
+
+
+alturas_str_cleaned = regexprep(alturas_cell, '[^\d.]', ''); 
+alturas_numeric = str2double(alturas_str_cleaned);
+alturas = alturas_numeric * 3.28084; 
+
+    IAS_values = tabla_runway24L.Var19(rows);
+    velocidad850 = NaN;
+    velocidad1500 = NaN;
+    velocidad3500 = NaN;
+    for j = 1:length(alturas)
+        if isnan(velocidad850) && alturas(j) >= 850
+            velocidad850 = IAS_values(j);
+        end
+        if isnan(velocidad1500) && alturas(j) >= 1500
+            velocidad1500 = IAS_values(j);
+        end
+        if isnan(velocidad3500) && alturas(j) >= 3500
+            velocidad3500 = IAS_values(j);
+        end
+        if ~isnan(velocidad850) && ~isnan(velocidad1500) && ~isnan(velocidad3500)
+            break;
+        end
+    end
+  
+    array_velocidades850(end+1) = velocidad850;
+    array_velocidades1500(end+1) = velocidad1500;
+    array_velocidades3500(end+1) = velocidad3500;
+end
+
+disp('Velocidades a 850 ft para 06R:');
+disp(array_velocidades850);
+disp('Velocidades a 1500 ft para 06R:');
+disp(array_velocidades1500);
+disp('Velocidades a 3500 ft para 06R:');
+disp(array_velocidades3500);
+        
 %% Used functions
 
 function distance = distancescalculating(posiciones_x1, posiciones_y1, posiciones_z1, posiciones_x2, posiciones_y2, posiciones_z2)
@@ -397,4 +619,6 @@ function distance = distancescalculating(posiciones_x1, posiciones_y1, posicione
     % Calcula la distancia euclidiana
     distance = sqrt(diff_x.^2 + diff_y.^2 + diff_z.^2);
 end
+
+
 

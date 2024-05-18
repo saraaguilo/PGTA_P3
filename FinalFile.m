@@ -505,6 +505,116 @@ for i = 1:length(latitude)
     fprintf('Radial del DVOR BCN al punto %d: %.2f grados\n', i, azimuth);
 end
 
+
+%% Velocidad IAS de los despegues a distintas altitudes: 850 ft, 1500 ft y 3500 ft
+
+%%mirar lo de hora de despegue
+
+% Aquí usaremos la tabla filtrada para la pista 24L
+% 1m = 3.28084ft
+
+array_velocidades850 = [];
+array_velocidades1500 = [];
+array_velocidades3500 = [];
+
+unique_planes = unique(tabla_runway24L.Var11);  
+
+
+for plane_id = unique_planes'
+    rows = tabla_runway24L.Var11 == plane_id;
+    alturas_cell = tabla_runway24L.Var5(rows); 
+
+
+alturas_str_cleaned = regexprep(alturas_cell, '[^\d.]', ''); 
+alturas_numeric = str2double(alturas_str_cleaned);
+alturas = alturas_numeric * 3.28084; 
+
+    IAS_values = tabla_runway24L.Var19(rows);
+    % disp(IAS_values +" a1");
+
+   
+    velocidad850 = NaN;
+    velocidad1500 = NaN;
+    velocidad3500 = NaN;
+    for j = 1:length(alturas)
+        if isnan(velocidad850) && alturas(j) >= 850
+            velocidad850 = IAS_values(j);
+            % disp(IAS_values+" f2");
+        end
+        if isnan(velocidad1500) && alturas(j) >= 1500
+            velocidad1500 = IAS_values(j);
+            % disp(IAS_values+" j3");
+        end
+        if isnan(velocidad3500) && alturas(j) >= 3500
+            velocidad3500 = IAS_values(j);
+            % disp(IAS_values+" k4");
+        end
+        if ~isnan(velocidad850) && ~isnan(velocidad1500) && ~isnan(velocidad3500)
+            break;
+        end
+    end
+  
+    array_velocidades850(end+1) = velocidad850;
+    array_velocidades1500(end+1) = velocidad1500;
+    array_velocidades3500(end+1) = velocidad3500;
+end
+
+disp('Velocidades a 850 ft para 24L:');
+disp(array_velocidades850);
+disp('Velocidades a 1500 ft para 24L:');
+disp(array_velocidades1500);
+disp('Velocidades a 3500 ft para 24L:');
+disp(array_velocidades3500);
+
+% Aquí usaremos la tabla filtrada para la pista 06R
+% 1m = 3.28084ft
+
+array_velocidades850_06 = [];
+array_velocidades1500_06= [];
+array_velocidades3500_06 = [];
+
+unique_planes_06 = unique(tabla_runway06R.Var11);  
+
+
+for plane_id_06 = unique_planes_06'
+    rows_06 = tabla_runway06R.Var11 == plane_id_06;
+    alturas_cell_06 = tabla_runway06R.Var5(rows_06); % Corregido
+
+    alturas_str_cleaned_06 = regexprep(alturas_cell_06, '[^\d.]', ''); 
+    alturas_numeric_06 = str2double(alturas_str_cleaned_06);
+    alturas_06 = alturas_numeric_06 * 3.28084;  
+
+    IAS_values_06 = tabla_runway06R.Var19(rows_06);
+    velocidad850_06 = NaN;
+    velocidad1500_06 = NaN;
+    velocidad3500_06 = NaN;
+    for j = 1:length(alturas_06)
+        if isnan(velocidad850_06) && alturas_06(j) >= 850
+            velocidad850_06 = IAS_values_06(j);
+        end
+        if isnan(velocidad1500_06) && alturas_06(j) >= 1500
+            velocidad1500_06 = IAS_values_06(j);
+        end
+        if isnan(velocidad3500_06) && alturas_06(j) >= 3500
+            velocidad3500_06 = IAS_values_06(j);
+        end
+        if ~isnan(velocidad850_06) && ~isnan(velocidad1500_06) && ~isnan(velocidad3500_06)
+            break;
+        end
+    end
+  
+    array_velocidades850_06(end+1) = velocidad850_06;
+    array_velocidades1500_06(end+1) = velocidad1500_06;
+    array_velocidades3500_06(end+1) = velocidad3500_06;
+end
+
+disp('Velocidades a 850 ft para 06R:');
+disp(array_velocidades850_06);
+disp('Velocidades a 1500 ft para 06R:');
+disp(array_velocidades1500_06);
+disp('Velocidades a 3500 ft para 06R:');
+disp(array_velocidades3500_06);
+        
 %% Used functions
 
 function distance = distancescalculating(posiciones_x1, posiciones_y1, posiciones_z1, posiciones_x2, posiciones_y2, posiciones_z2)
@@ -516,3 +626,6 @@ function distance = distancescalculating(posiciones_x1, posiciones_y1, posicione
     % Calcula la distancia euclidiana
     distance = sqrt(diff_x.^2 + diff_y.^2 + diff_z.^2);
 end
+
+
+
